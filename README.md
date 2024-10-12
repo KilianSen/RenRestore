@@ -1,5 +1,3 @@
-from typing import BinaryIOfrom typing import BinaryIOfrom typing import Tuplefrom typing import BinaryIOfrom typing import BinaryIOfrom typing import BinaryIOfrom typing import BinaryIOfrom typing import BinaryIOfrom typing import Optionalfrom typing import BinaryIO
-
 # RenRestore - Python RPA Extractor Library
 
 [![PyPI - Python Version](https://img.shields.io/badge/python-3.13-blue)](https://www.python.org/)
