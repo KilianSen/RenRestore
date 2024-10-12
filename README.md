@@ -1,3 +1,5 @@
+from typing import BinaryIOfrom typing import BinaryIOfrom typing import Tuplefrom typing import BinaryIOfrom typing import BinaryIOfrom typing import BinaryIOfrom typing import BinaryIOfrom typing import BinaryIOfrom typing import Optionalfrom typing import BinaryIO
+
 # RenRestore - Python RPA Extractor Library
 
 [![PyPI - Python Version](https://img.shields.io/badge/python-3.13-blue)](https://www.python.org/)
@@ -39,26 +41,44 @@ restorer.extract_files("scripts.rpa", "output")
 ```
 
 ### Custom Archive Format
+
 ```python
 import logging
 from RenRestore import RenRestore, ArchiveFormat, ArchiveFormatRegistry
+from typing import Dict, Iterable, Tuple, Optional, BinaryIO, Callable
 
 log = logging.getLogger("RenRestore")
 log.addHandler(logging.StreamHandler())
 log.setLevel(logging.DEBUG)
 
-class CustomArchiveFormat(ArchiveFormat):
-    def __init__(self):
-        super().__init__("CustomArchiveFormat", "Custom Archive Format", ["custom"])
 
-    def extract(self, archive_path: str, output_directory: str):
-        print(f"Extracting {archive_path} with {self.name} to {output_directory}")
+class CustomArchiveFormat(ArchiveFormat):
+    def extract(self, index: Dict[str, Iterable[Tuple[int, int, bytes]]], archive: BinaryIO,
+                on_exception: Callable[[Exception], ...]) -> Iterable[Tuple[str, Iterable[bytes]]]:
+        pass
+
+    def index(self, archive: BinaryIO, offset_and_key: Optional[Tuple[int, int]]) -> Dict[
+        str, Iterable[Tuple[int, int, bytes]]]:
+        pass
+
+    def postprocess(self, source: BinaryIO) -> BinaryIO:
+        pass
+
+    def preprocess(self, source: BinaryIO) -> BinaryIO:
+        pass
+
+    def find_offset_and_key(self, archive: BinaryIO) -> Tuple[int, Optional[int]]:
+        pass
+
+    def detect(self, archive: BinaryIO) -> bool:
+        pass
+
 
 registry = ArchiveFormatRegistry()
 
-registry + CustomArchiveFormat # Yes, i know this is cursed, but currently the way to add an archive format to the registry.
+registry + CustomArchiveFormat  # Yes, i know this is cursed, but currently the way to add an archive format to the registry.
 
-restorer = RenRestore(create_output_directory=True, archive_format_registry=registry)
+restorer = RenRestore(create_output_directory=True, format_registry=registry)
 
 restorer.extract_files("custom_archive.custom", "output")
 ```
