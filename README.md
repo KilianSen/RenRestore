@@ -7,19 +7,9 @@ from typing import BinaryIOfrom typing import BinaryIOfrom typing import Tuplefr
 
 ## About
 
-RenRestore is a Python library that allows you to extract files from RenPy's RPA archives.
+RenRestore extracts files from RenPy's RPA archives. It supports various RPA formats, both official and unofficial. You can implement custom formats by subclassing `ArchiveFormat` and adding them to an `ArchiveFormatRegistry`. The `RenRestore` class uses this registry to detect and handle different archive formats.
 
-## Archive Format Support
-There are many different versions of the RPA archive format, some official and many unofficial. 
-Therefor, RenRestore allows you to implement your own RPA archive format by subclassing the `ArchiveFormat` class.
-The implemented archive formats can then be added to an `ArchiveFormatRegistry`.
-This Registry can then be passed to the `RenRestore` class, which when tasked with extracting files from an RPA archive,
-will try to detect the archive format and use the corresponding implementation (if available).
-
-There is also the `AutoRegistry`, which will load in all available archive formats (file extension `.rpaf.py`) in a given directory.
-This is used by default when creating a new `RenRestore` object, 
-with the directory being the `/RenRestore/ArchiveFormats/Plugins/` directory.
-By default, this directory contains some of the most common RPA archive formats.
+The `AutoRegistry` loads all available formats (with `.rpaf.py` extension) from the `/RenRestore/ArchiveFormats/Plugins/` directory by default.
 
 ## Installation
 
