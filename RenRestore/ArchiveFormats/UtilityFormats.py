@@ -25,7 +25,7 @@ class HeaderBasedArchiveFormat(ArchiveFormat, metaclass=ABCMeta):
 
 
 class NoPostprocess(ArchiveFormat, metaclass=ABCMeta):
-    def postprocess(self, source: ArchiveWalker) -> ArchiveWalker:
+    def postprocess(self, source: BinaryIO) -> BinaryIO:
         return source
 
 

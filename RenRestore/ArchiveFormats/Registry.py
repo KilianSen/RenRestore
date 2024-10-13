@@ -11,35 +11,35 @@ _log = get_logger()
 
 
 class ArchiveFormatRegistry(metaclass=ABCMeta):
-    __formats: Set[Type["ArchiveFormat"]]
+    _formats: Set[Type["ArchiveFormat"]]
 
     def __init__(self):
-        self.__formats = set()
+        self._formats = set()
 
     def __add__(self, other: Type["ArchiveFormat"]):
-        if other in self.__formats:
+        if other in self._formats:
             _log.debug(f"Version {other.name} is already in the list of versions.")
             return False
 
-        self.__formats.add(other)
+        self._formats.add(other)
         _log.debug(f"Added version {other.name} to the list of versions.")
         return True
 
     def __sub__(self, other: Type["ArchiveFormat"]):
-        if other not in self.__formats:
+        if other not in self.formats:
             _log.debug(f"Version {other.name} is not in the list of versions.")
             return False
 
-        self.__formats.remove(other)
+        self._formats.remove(other)
         _log.debug(f"Removed version {other.name} from the list of versions.")
         return True
 
     def __contains__(self, item: Type["ArchiveFormat"]):
-        return item in self.__formats
+        return item in self._formats
 
     @property
     def formats(self) -> FrozenSet[Type["ArchiveFormat"]]:
-        return frozenset(self.__formats)
+        return frozenset(self._formats)
 
 
 class NullRegistry(ArchiveFormatRegistry):
@@ -47,7 +47,7 @@ class NullRegistry(ArchiveFormatRegistry):
         A registry that does not contain any formats.
     """
 
-    __formats = frozenset()
+    _formats = frozenset()
 
 
 class AutoRegistry(ArchiveFormatRegistry):
