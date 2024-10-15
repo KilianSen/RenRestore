@@ -164,8 +164,18 @@ class RenRestore:
                     if not os.path.exists(os.path.dirname(target_file_path)):
                         os.makedirs(os.path.dirname(target_file_path))
 
+                    # The extractor supplies a target file path where it would write the file to.
+                    # This behavior is not guaranteed and can be changed by the postprocess method.
+                    # For example, the postprocess method can return an io.BytesIO object to write to memory.
+                    # Which internally can be used to in-memory decompile the extracted file and write it to disk.
+                    # The postprocess method can also close the file, in which case the file will not be written.
                     with try_catch_method(open(target_file_path, "wb"),
                                           archive_format.postprocess, FormatError) as output_file:
+                        if output_file.closed:
+                            # The postprocess method is allowed to close th file, as
+                            # a failure state or to intentionally inhibit writing.
+                            # TODO: Doc
+                            continue
                         for segment in segments:
                             output_file.write(segment)
             except Exception as error:
