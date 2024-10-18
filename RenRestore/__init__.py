@@ -1,7 +1,9 @@
 import io
 import os
+import pathlib
 import traceback
 from collections.abc import Callable
+from pathlib import Path
 from typing import (
     Tuple,
     Optional,
@@ -147,12 +149,12 @@ class RenRestore:
 
         class InMemoryWrite(io.BytesIO):
 
-            def __init__(self, path):
+            def __init__(self, path: pathlib.Path):
                 super().__init__()
-                self._path = path
+                self._path: Path = path
 
             @property
-            def name(self):
+            def name(self) -> pathlib.Path:
                 return self._path
 
         with (try_catch_method(open(file_path, "rb"), archive_format.preprocess, FormatError) as archive):
@@ -182,7 +184,7 @@ class RenRestore:
                     # at writing time or at any other time. This is useful for in-memory compilation and filtering,
                     # and especially stacking postprocessing methods. (currently not implemented in this code)
 
-                    output_file = try_catch_method(InMemoryWrite(target_file_path),
+                    output_file = try_catch_method(InMemoryWrite(pathlib.Path(target_file_path)),
                                      archive_format.postprocess, FormatError)
 
                     if output_file.closed:

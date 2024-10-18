@@ -1,7 +1,7 @@
 import pathlib
+import typing
 from abc import ABCMeta
 from typing import BinaryIO, Callable, Iterable, Optional
-from warnings import deprecated
 
 from RenRestore import ArchiveFormatRegistry
 from RenRestore.logging import _logger as __logger
@@ -39,8 +39,24 @@ class NoPreprocess(ArchiveFormat, metaclass=ABCMeta):
 class NoPrePostprocess(NoPostprocess, NoPreprocess, metaclass=ABCMeta):
     pass
 
+def inject_process_in_format[X: typing.Type[ArchiveFormat]](format: X, preprocess: Optional[Callable[[BinaryIO], BinaryIO]] = None, postprocess: Optional[Callable[[BinaryIO], BinaryIO]] = None) -> typing.Type[X]:
+    def pass_through(source: BinaryIO) -> BinaryIO:
+        return source
 
-def postprocess_registry_inject[X: ArchiveFormatRegistry](registry: X, preprocess: Optional[Callable[[BinaryIO], BinaryIO]] = None, postprocess: Optional[Callable[[BinaryIO], BinaryIO]] = None) -> X:
+    class InterceptedFormat(format):
+        def postprocess(self, source: BinaryIO) -> BinaryIO:
+            return (postprocess if postprocess is not None else pass_through)(super().postprocess(source))
+
+        def preprocess(self, source: BinaryIO) -> BinaryIO:
+            return (preprocess if preprocess is not None else pass_through)(super().preprocess(source))
+
+    __logger.debug(
+        f"Created new class {InterceptedFormat} that inherits from {format} and overrides postprocess to {postprocess}")
+
+    return InterceptedFormat
+
+
+def inject_process_in_registry[X: ArchiveFormatRegistry](registry: X, preprocess: Optional[Callable[[BinaryIO], BinaryIO]] = None, postprocess: Optional[Callable[[BinaryIO], BinaryIO]] = None) -> X:
 
     __logger.debug(f"Injecting postprocess {postprocess} into registry {registry}")
 
@@ -65,43 +81,25 @@ def postprocess_registry_inject[X: ArchiveFormatRegistry](registry: X, preproces
 
         # Create a new class that inherits from the original class
         # and overrides the postprocess method
-        def handthrough(source: BinaryIO) -> BinaryIO:
-            return source
-
-        class InterceptedFormat(archive_format):
-            def postprocess(self, source: BinaryIO) -> BinaryIO:
-                # If the source is closed, it should not be post-processed any further
-                if source.closed:
-                    return source
-
-                return (postprocess if postprocess is not None else handthrough)(super().postprocess(source))
-
-            def preprocess(self, source: BinaryIO) -> BinaryIO:
-                # If the source is closed, it should not be pre-processed any further
-                if source.closed:
-                    return source
-                return (preprocess if preprocess is not None else handthrough)(super().preprocess(source))
-
-        __logger.debug(f"Created new class {InterceptedFormat} that inherits from {archive_format} and overrides postprocess to {postprocess} in {new_registry}")
-
-        # Add the new class to the new registry
-        new_registry + InterceptedFormat
+        new_format: typing.Type[ArchiveFormat] = inject_process_in_format(archive_format, preprocess, postprocess)
+        new_registry + new_format
+        __logger.debug(f"Injected postprocess format {new_format} in {archive_format}")
 
     __logger.debug(f"Injected postprocess into registry {new_registry}!")
     return new_registry
 
-def multi_postprocess[X: ArchiveFormatRegistry](registry: X,
-                                                preprocessors: Optional[Iterable[Callable[[BinaryIO], BinaryIO]]] = None,
-                                                postprocessors: Optional[Iterable[Callable[[BinaryIO], BinaryIO]]] = None) -> X:
+def inject_multi_process_in_registry[X: ArchiveFormatRegistry](registry: X,
+                                                               preprocessors: Optional[Iterable[Callable[[BinaryIO], BinaryIO]]] = None,
+                                                               postprocessors: Optional[Iterable[Callable[[BinaryIO], BinaryIO]]] = None) -> X:
     __logger.debug(f"Injecting multiple postprocessors {" -> ".join([p.__repr__() for p in postprocessors][::-1])} into registry {registry}")
 
     current_registry = registry
 
     for preprocessor in (preprocessors if preprocessors is not None else [])[::-1]:
-        current_registry = postprocess_registry_inject(current_registry, preprocessor, None)
+        current_registry = inject_process_in_registry(current_registry, preprocessor, None)
 
     for postprocessor in (postprocessors if postprocessors is not None else [])[::-1]:
-        current_registry = postprocess_registry_inject(current_registry, None, postprocessor)
+        current_registry = inject_process_in_registry(current_registry, None, postprocessor)
 
 
     return current_registry
