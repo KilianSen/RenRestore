@@ -105,7 +105,7 @@ class RenRestore:
 
         _logger.debug(f"Output directory: {output_path}")
         archive_format = format_override() if format_override else (
-            self.detect_archive_format(file_path, False, self.formats))
+            self.detect_archive_format(file_path, False, self.format_registry.formats | self.extra_formats))
 
         if archive_format is None:
             raise UnknownArchiveFormatError(set())
@@ -183,32 +183,32 @@ class RenRestore:
                     # The postprocessing method allows to intercept the output file and to close it,
                     # at writing time or at any other time. This is useful for in-memory compilation and filtering,
                     # and especially stacking postprocessing methods. (currently not implemented in this code)
+                    with InMemoryWrite(pathlib.Path(target_file_path)) as mem_file:
+                        output_file = try_catch_method(mem_file,
+                                         archive_format.postprocess, FormatError)
 
-                    output_file = try_catch_method(InMemoryWrite(pathlib.Path(target_file_path)),
-                                     archive_format.postprocess, FormatError)
-
-                    if output_file.closed:
-                        continue
-
-                    skipped = False
-                    for segment in segments:
                         if output_file.closed:
-                            skipped = True
-                            break
-                        output_file.write(segment)
+                            continue
 
-                    if skipped or output_file.closed:
-                        continue
+                        skipped = False
+                        for segment in segments:
+                            if output_file.closed:
+                                skipped = True
+                                break
+                            output_file.write(segment)
 
-                    # At this point, the output file is not closed and the segments were written to it.
-                    # Now we can write the file to disk.
+                        if skipped or output_file.closed:
+                            continue
 
-                    if not os.path.exists(os.path.dirname(target_file_path)):
-                        os.makedirs(os.path.dirname(target_file_path))
+                        # At this point, the output file is not closed and the segments were written to it.
+                        # Now we can write the file to disk.
 
-                    output_file.seek(0)
-                    with open(target_file_path, "wb") as file:
-                        file.write(output_file.read())
+                        if not os.path.exists(os.path.dirname(target_file_path)):
+                            os.makedirs(os.path.dirname(target_file_path))
+
+                        output_file.seek(0)
+                        with open(target_file_path, "wb") as file:
+                            file.write(output_file.read())
 
             except Exception as error:
                 on_exception_in_extract(error)
