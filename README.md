@@ -5,7 +5,7 @@
 
 ## About
 
-RenRestore extracts files from RenPy's RPA archives. It supports various RPA formats, both official and unofficial. You can implement custom formats by subclassing `ArchiveFormat` and adding them to an `ArchiveFormatRegistry`. The `RenRestore` class uses this registry to detect and handle different archive formats.
+RenRestore extracts files from RenPy's RPA archives. It supports various RPA formats, both official and unofficial. You can implement custom formats by inheriting `ArchiveFormat` and adding them to an `ArchiveFormatRegistry`. The `RenRestore` class uses this registry to detect and handle different archive formats.
 
 The `AutoRegistry` loads all available formats (with `.rpaf.py` extension) from the `/RenRestore/ArchiveFormats/Plugins/` directory by default.
 
