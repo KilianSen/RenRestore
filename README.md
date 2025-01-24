@@ -2,7 +2,7 @@
 
 [![PyPI - Python Version](https://img.shields.io/badge/python-3.13-blue)](https://www.python.org/)
 [![GitHub](https://img.shields.io/github/license/KilianSen/RenRestore)](https://github.com/KilianSen/RenRestore/blob/master/LICENSE)
-
+t
 ## About
 
 RenRestore extracts files from RenPy's RPA archives. It supports various RPA formats, both official and unofficial. You can implement custom formats by inheriting `ArchiveFormat` and adding them to an `ArchiveFormatRegistry`. The `RenRestore` class uses this registry to detect and handle different archive formats.
