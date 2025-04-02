@@ -1,12 +1,14 @@
+import io
 import os
-import time
+import pathlib
 import traceback
 from collections.abc import Callable
+from pathlib import Path
 from typing import (
     Tuple,
     Optional,
     Type,
-    FrozenSet, Set, )
+    FrozenSet, Set, BinaryIO )
 
 from RenRestore.ArchiveFormats.Format import ArchiveFormat
 from RenRestore.ArchiveFormats.Registry import ArchiveFormatRegistry, AutoRegistry
@@ -103,7 +105,7 @@ class RenRestore:
 
         _logger.debug(f"Output directory: {output_path}")
         archive_format = format_override() if format_override else (
-            self.detect_archive_format(file_path, False, self.formats))
+            self.detect_archive_format(file_path, False, self.format_registry.formats | self.extra_formats))
 
         if archive_format is None:
             raise UnknownArchiveFormatError(set())
@@ -123,6 +125,7 @@ class RenRestore:
                 return method(source)
             except Exception as err:
                 _logger.debug(f"Exception bordered in {method.__name__}: {err}")
+                _logger.debug(traceback.format_exc())
                 if isinstance(on_exception, Exception):
                     raise on_exception from err
                 on_exception(err)
@@ -144,6 +147,16 @@ class RenRestore:
 
             _logger.error(f"Extractions exception: {raised_error} continuing per instruction.")
 
+        class InMemoryWrite(io.BytesIO):
+
+            def __init__(self, path: pathlib.Path):
+                super().__init__()
+                self._path: Path = path
+
+            @property
+            def name(self) -> pathlib.Path:
+                return self._path
+
         with (try_catch_method(open(file_path, "rb"), archive_format.preprocess, FormatError) as archive):
             try:
                 offset_and_key = offset_and_key_override
@@ -161,23 +174,42 @@ class RenRestore:
 
                     target_file_path = os.path.join(output_path, target_file)
 
-                    if not os.path.exists(os.path.dirname(target_file_path)):
-                        os.makedirs(os.path.dirname(target_file_path))
-
-                    # The extractor supplies a target file path where it would write the file to.
+                    # Maybe DEPRECATED: The extractor supplies a target file path where it would write the file to.
                     # This behavior is not guaranteed and can be changed by the postprocess method.
                     # For example, the postprocess method can return an io.BytesIO object to write to memory.
                     # Which internally can be used to in-memory decompile the extracted file and write it to disk.
                     # The postprocess method can also close the file, in which case the file will not be written.
-                    with try_catch_method(open(target_file_path, "wb"),
-                                          archive_format.postprocess, FormatError) as output_file:
+
+                    # The postprocessing method allows to intercept the output file and to close it,
+                    # at writing time or at any other time. This is useful for in-memory compilation and filtering,
+                    # and especially stacking postprocessing methods. (currently not implemented in this code)
+                    with InMemoryWrite(pathlib.Path(target_file_path)) as mem_file:
+                        output_file = try_catch_method(mem_file,
+                                         archive_format.postprocess, FormatError)
+
                         if output_file.closed:
-                            # The postprocess method is allowed to close th file, as
-                            # a failure state or to intentionally inhibit writing.
-                            # TODO: Doc
                             continue
+
+                        skipped = False
                         for segment in segments:
+                            if output_file.closed:
+                                skipped = True
+                                break
                             output_file.write(segment)
+
+                        if skipped or output_file.closed:
+                            continue
+
+                        # At this point, the output file is not closed and the segments were written to it.
+                        # Now we can write the file to disk.
+
+                        if not os.path.exists(os.path.dirname(target_file_path)):
+                            os.makedirs(os.path.dirname(target_file_path))
+
+                        output_file.seek(0)
+                        with open(target_file_path, "wb") as file:
+                            file.write(output_file.read())
+
             except Exception as error:
                 on_exception_in_extract(error)
 

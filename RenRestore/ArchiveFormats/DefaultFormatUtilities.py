@@ -9,7 +9,7 @@ from typing import BinaryIO, Optional, Tuple, Dict, cast, Iterable, Union
 from RenRestore import FormatError, logging
 from RenRestore.ArchiveFormats.Format import ArchiveFormat
 from RenRestore.ArchiveFormats.Walker import ArchiveWalker
-from RenRestore.ArchiveFormats.UtilityFormats import NoPrePostprocess
+from RenRestore.ArchiveFormats.Utility import NoPrePostprocess
 
 _logger = logging.get_logger()
 

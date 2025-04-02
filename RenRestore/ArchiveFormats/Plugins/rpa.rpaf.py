@@ -1,7 +1,7 @@
 from typing import BinaryIO, Tuple, Optional
 
 from RenRestore.ArchiveFormats.DefaultFormatUtilities import DefaultFormatUtilities
-from RenRestore.ArchiveFormats.UtilityFormats import HeaderBasedArchiveFormat, ExtensionBasedArchiveFormat
+from RenRestore.ArchiveFormats.Utility import HeaderBasedArchiveFormat, ExtensionBasedArchiveFormat
 
 
 class RPA1(ExtensionBasedArchiveFormat, DefaultFormatUtilities):
